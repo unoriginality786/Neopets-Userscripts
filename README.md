@@ -1,2 +1,2 @@
-# CoconutShy
-The following userscript will convert the flash-free version text to a readable format using the "neopets" typeface. Also includes a refresh button to make it easier to play multiple games on mobile devices.
+# Neopets User Scripts
+The following scripts are designed to enhance the Neopets.com experience. Primarily for ease of use on mobile devices, as the site has accessibility limitations. All scripts are designed to adhere to site rules and do not offer any competitive advantage.
