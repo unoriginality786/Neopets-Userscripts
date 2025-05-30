@@ -1,0 +1,58 @@
+// ==UserScript==
+// @name         Neopets Bank Autofill Button
+// @version      1.0
+// @description  Adds a styled Neopets button to autofill bank deposit/withdraw fields
+// @icon         https://images.neopets.com/new_shopkeepers/t_1900.gif
+// @author       unoriginality786
+// @match        https://www.neopets.com/bank.phtml
+// @namespace    https://greasyfork.org/users/1277376
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    function createAutofillButton() {
+        const button = document.createElement('button');
+        button.innerText = 'Autofill Bank Forms';
+        button.classList.add('button-default__2020', 'button-purple__2020');
+        button.style.display = 'inline-block';
+        button.style.width = 'auto';
+
+        button.onclick = () => {
+            const balanceElement = document.querySelector("#txtCurrentBalance1");
+            const npAnchor = document.querySelector("#npanchor");
+            const depositInput = document.querySelector("#frmDeposit input[name='amount']");
+            const withdrawInput = document.querySelector("#frmWithdraw input[name='amount']");
+
+            if (balanceElement && withdrawInput) {
+                const balance = balanceElement.innerText.replace(/[^\d]/g, "");
+                withdrawInput.value = balance.slice(-6);
+            }
+
+            if (npAnchor && depositInput) {
+                const npAmount = parseInt(npAnchor.innerText.replace(/[^\d]/g, ""), 10);
+                const roundedDown = Math.floor(npAmount / 1_000_000) * 1_000_000;
+                depositInput.value = roundedDown;
+            }
+        };
+
+        return button;
+    }
+
+    function insertButton() {
+        const referenceDiv = document.querySelector('.bank-grid2');
+        if (referenceDiv) {
+            const container = document.createElement('div');
+            container.style.marginTop = '10px';
+            container.style.textAlign = 'center';
+            container.appendChild(createAutofillButton());
+            referenceDiv.insertAdjacentElement('afterend', container);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", insertButton);
+    } else {
+        insertButton();
+    }
+})();
