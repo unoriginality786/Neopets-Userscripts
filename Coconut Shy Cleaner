@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Coconut Shy Mobile Friendly
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.5
 // @description  Convert text to be readable and add refresh button
 // @match        https://www.neopets.com/halloween/process_cocoshy.phtml?coconut=*
 // @grant        GM_addStyle
@@ -9,94 +9,123 @@
 
 (function () {
     'use strict';
-
-    // Add custom font and styles
+    //=================
+    // 1. Custom Styles
+    //=================
     GM_addStyle(`
-        @font-face {
-            font-family: 'Heffaklump';
-            src: url('https://raw.githubusercontent.com/unoriginality786/Neopets_Dailies/main/fonts/Heffaklump.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
-        }
+@font-face {
+font-family: 'Heffaklump';
+src: url('https://raw.githubusercontent.com/unoriginality786/Neopets_Dailies/main/fonts/Heffaklump.woff') format('woff');
+font-weight: normal;
+font-style: normal;
+}
 
-        body {
-            font-family: 'Heffaklump', sans-serif;
-            background-color: #fdf6ec;
-            padding: 20px;
-            margin: 0;
-        }
+body {
+font-family: 'Heffaklump', sans-serif;
+background-color: #fdf6ec;
+padding: 20px;
+margin: 0;
+}
 
-        .coconut-message {
-            text-align: center;
-            font-size: 1.8em;
-            color: #5a2b7b;
-            margin-bottom: 20px;
-        }
+.coconut-message {
+text-align: center;
+font-size: 1.8em;
+color: #5a2b7b;
+margin-bottom: 20px;
+}
 
-        .button-default__2020 {
-            padding: 2px 5px 7px 5px !important;
-            border-radius: 12px;
-            min-height: 25px;
-            cursor: pointer;
-            border: none;
-            color: #fff;
-            background-color: #8e44ad;
-            font-size: 1.1em;
-            font-family: 'Heffaklump', sans-serif;
-            transition: background-color 0.2s ease-in-out;
-        }
+.custom-button-wrapper {
+text-align: center;
+}
 
-        .button-default__2020:hover {
-            background-color: #732d91;
-        }
+button {
+font-family: 'Heffaklump', sans-serif;
+}
 
-        .custom-button-wrapper {
-            text-align: center;
-        }
+  .button-purple__2020 {
+  color: #fff;
+  text-shadow: 0 0 4px #000;
+  background: linear-gradient(#9153f3, #7223b7);
+  border-radius: 15px;
+  box-shadow:
+    inset 0 0 0 1px rgba(145, 83, 243, 1),
+    inset 0 -3px 2px 3px rgba(67, 29, 112, 1),
+    inset 0 2px 0 1px rgba(225, 208, 252, 1),
+    0 0 0 2px rgba(0, 0, 0, 1);
+  padding: 10px 25px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  }
 
-        .custom-button-wrapper button {
-            width: 50%;
-        }
-    `);
+  .button-purple__2020:hover:not(:disabled),
+  .button-purple__2020:focus:not(:disabled) {
+  background: linear-gradient(#ac7bff, #ad22f6);
+  outline: none;
+  }
 
-    // Get the raw text content from the page
-    let rawText = document.body.textContent || '';
+  .button-purple__2020:active:not(:disabled) {
+  background: linear-gradient(#7223b7, #9153f3);
+  }
+
+  .button-default__2020:disabled {
+  filter: grayscale(100);
+  cursor: default;
+  }
+`);
+    //=============
+    // 2. Constants
+    //=============
+    const rawText = document.body.textContent || '';
     const errorMatch = rawText.match(/&error=(.*)/);
+    const hasError = errorMatch && errorMatch[1];
+    const decodedMessage = hasError ? decodeURIComponent(errorMatch[1].replace(/\+/g, ' ')) : '';
+    const OUT_OF_THROWS_TEXT = "Oi! No more throws, you've had yer lot.";
+//=====================
+// 3. Methods & Handler
+//=====================
 
-    if (errorMatch && errorMatch[1]) {
-        const decodedMessage = decodeURIComponent(errorMatch[1].replace(/\+/g, ' '));
-
-        // Clear the body
-        document.body.innerHTML = '';
-
-        // Create and insert message
-        const messageDiv = document.createElement('div');
-        messageDiv.textContent = decodedMessage;
-        messageDiv.className = 'coconut-message';
-        document.body.appendChild(messageDiv);
-
-        // Create and insert button inside wrapper for centering
-        const buttonWrapper = document.createElement('div');
-        buttonWrapper.className = 'custom-button-wrapper';
-
-        const button = document.createElement('button');
-        button.textContent = 'Throw again';
-        button.classList.add('button-default__2020');
-        button.style.display = 'inline-block';
-        button.style.padding = '8px 14px';
-        button.style.width = 'auto';
-
-        // Check if user is out of throws
-        if (decodedMessage.trim() === "Oi! No more throws, you've had yer lot.") {
-            button.style.backgroundColor = '#e74c3c'; // red
-            button.disabled = true;
-            button.style.cursor = 'not-allowed';
-            button.title = "No more throws available";
-        } else {
-            button.onclick = () => location.reload();
-        }
-
-        buttonWrapper.appendChild(button);
-        document.body.appendChild(buttonWrapper);
+// Converts the error message into readable format
+function createMessageElement(message) {
+    const div = document.createElement('div');
+    div.classList.add('coconut-message');
+    div.textContent = message;
+    return div;
+}
+// Prevent button click if out of throws
+function handleReloadClick(e) {
+    e.preventDefault();
+    location.reload();
+}
+// Create button
+function createThrowAgainButton(isDisabled) {
+    const btn = document.createElement('button');
+    btn.classList.add('button-purple__2020');
+    if (isDisabled) {
+        btn.disabled = true;
+        btn.classList.add('button-default__2020');
+        btn.textContent = 'Out of Throws!';
+    } else {
+        btn.textContent = 'Throw again!';
+        btn.addEventListener('click', handleReloadClick);
     }
+    return btn;
+}
+// If Out of Throws
+if (hasError) {
+    document.body.innerHTML = '';
+
+    const isOutOfThrows = decodedMessage.trim() === OUT_OF_THROWS_TEXT;
+    const messageEl = createMessageElement(decodedMessage);
+    const buttonEl = createThrowAgainButton(isOutOfThrows);
+
+    document.body.appendChild(messageEl);
+
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.classList.add('custom-button-wrapper');
+    buttonWrapper.appendChild(buttonEl);
+
+    document.body.appendChild(buttonWrapper);
+}
+
 })();
