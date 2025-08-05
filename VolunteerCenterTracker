@@ -1,0 +1,114 @@
+// ==UserScript==
+// @name         Volunteer Center Notifications
+// @version      2025.08.05
+// @description  Adds block to Notification bar to tell you how much time is left on Volunteer Center
+// @author       unoriginality786
+// @match        https://www.neopets.com/*
+// @icon         https://images.neopets.com/themes/h5/basic/images/tvw-icon.png
+// @grant        none
+// ==/UserScript==
+
+(() => {
+  'use strict';
+
+  // Set Constants and Styles
+  const b = `
+    border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) calc(150 / 3) calc(150 / 3) fill / 50px / 9px;
+    color:white;padding:1em;margin-left:4px;width:96.5%;
+  `.replace(/\s+/g, ' ');
+  const a = `
+    width:2.5em;height:3.5em;
+    background:url(https://images.neopets.com/plots/tvw/activities/void-collection/imagers/arrow.png) center/contain no-repeat;
+    cursor:pointer;float:right;
+  `.replace(/\s+/g, ' ');
+
+  // Utility Functions
+  const addTime = (d, h = 0, m = 0, s = 0) => {
+    d.setHours(d.getHours() + h);
+    d.setMinutes(d.getMinutes() + m);
+    d.setSeconds(d.getSeconds() + s);
+    return d;
+  };
+
+  // Generate Notification & Append Time Remaining
+  const n = (s) => {
+    const se = localStorage.getItem("tvw-bfbi-shiftend");
+    const e = new Date(se);
+    const t = e.toLocaleString('en-US', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
+    }).replace(",", "").replace("AM", "am").replace("PM", "pm");
+    const tz = new Date().toTimeString().match(/\(([^)]+)\)/)?.[1] || "UTC";
+    const abbr = tz.includes(" ") ? tz.split(" ").map(w => w[0]).join("") : tz;
+    const msg = {
+      noprogress: "Not in progress",
+      inprogress: `In progress: ends at ${t} ${abbr}`,
+      completed: "Finished"
+    }[s];
+    return `
+      <a id="tvw-notification" href="https://www.neopets.com/hospital/volunteer.phtml">
+        <li style="${b}">
+          <div class="vc-arrow right" style="${a}"></div>
+          <h4 style="color:white;">${msg}</h4><br>
+        </li>
+      </a>
+    `;
+  };
+
+  // Indicator Increment
+  const inc = () => {
+    const el = document.getElementById("NavAlertsNotif");
+    const c = parseInt(el.textContent) || 0;
+    el.textContent = c + 1;
+    el.style.display = "block";
+    el.style.background = "#FF46FF";
+  };
+
+  // LocalStorage Check
+  const ul = document.querySelector("#alerts > ul");
+  document.querySelector("#alerts > ul > .alerts-none__2020")?.remove();
+  const se = localStorage.getItem("tvw-bfbi-shiftend");
+
+  // Volunteer Button Handlers
+  const cJob = () => {
+    localStorage.setItem("tvw-bfbi-shiftend", addTime(new Date(), 6));
+    document.getElementById("tvw-notification").innerHTML = n("inprogress");
+  };
+  const xJob = () => {
+    localStorage.removeItem("tvw-bfbi-shiftend");
+    document.getElementById("tvw-notification").innerHTML = n("noprogress");
+  };
+  const fJob = () => localStorage.removeItem("tvw-bfbi-shiftend");
+
+  // Main Execution Logic
+  if (location.href === "https://www.neopets.com/hospital/volunteer.phtml") {
+    document.getElementById("VolunteerJoinButton")?.addEventListener("click", e => {
+      e.preventDefault(); cJob();
+    });
+
+    document.getElementById("VolunteerCancelButton")?.addEventListener("click", e => {
+      e.preventDefault(); xJob();
+    });
+
+    document.getElementById("VolunteerButton3")?.addEventListener("click", e => {
+      e.preventDefault(); fJob();
+    });
+
+    const s = document.querySelector('#VolunteerFight3 > div.vc-fight-details > div.vc-fight-status > span > script');
+    if (s) {
+      const [h, m, s_] = s.innerHTML.split("new vcClock(").pop().split(")")[0].split(", ").map(Number);
+      localStorage.setItem("tvw-bfbi-shiftend", addTime(new Date(), h, m, s_));
+      ul.insertAdjacentHTML("afterbegin", n("inprogress"));
+    } else {
+      ul.insertAdjacentHTML("afterbegin", n("noprogress"));
+    }
+  } else {
+    if (se) {
+      const d = new Date(se);
+      d < Date.now()
+        ? (inc(), ul.insertAdjacentHTML("afterbegin", n("completed")))
+        : ul.insertAdjacentHTML("afterbegin", n("inprogress"));
+    } else {
+      ul.insertAdjacentHTML("afterbegin", n("noprogress"));
+    }
+  }
+})();
