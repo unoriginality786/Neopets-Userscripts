@@ -13,7 +13,7 @@
 
   // Set Constants and Styles
   const b = `
-    border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) calc(150 / 3) calc(150 / 3) fill / 50px / 9px;
+    border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) 50 fill / 50px / 9px;
     color:white;padding:1em;margin-left:4px;width:96.5%;
   `.replace(/\s+/g, ' ');
   const a = `
