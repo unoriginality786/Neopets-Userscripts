@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         QWERTY Battledome Buttons
 // @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Control Neopets Battledome using keyboard. Includes HUD display & autoscroll to bottom of page
+// @version      1.2
+// @description  Control Neopets Battledome using keyboard
 // @icon         https://images.neopets.com/neoboards/avatars/bd_veteran.gif
 // @match        https://www.neopets.com/dome/arena.phtml*
 // @grant        none
@@ -28,6 +28,8 @@
         'N': { selector: '#bdnewfight', label: 'New Fight' },
         'M': { selector: '#bdexit', label: 'Exit' }
     };
+
+    let vKeyPressed = false;
 
     //=========================
     // Scrape Weapons/Abilities
@@ -153,6 +155,14 @@
                 if (slot && typeof selectSlot === 'function') {
                     selectSlot(slot, img.src);
                 }
+                return;
+            }
+
+            //Safety feature to prevent glitching
+            if (key === 'V') {
+                vKeyPressed = true;
+            }
+            if (key === 'B' && !vKeyPressed) {
                 return;
             }
 
