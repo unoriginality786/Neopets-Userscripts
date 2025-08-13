@@ -1,0 +1,318 @@
+// ==UserScript==
+// @name         QWERTY Battledome Buttons
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @description  Control Neopets Battledome using keyboard. Includes HUD display & autoscroll to bottom of page
+// @icon         https://images.neopets.com/neoboards/avatars/bd_veteran.gif
+// @match        https://www.neopets.com/dome/arena.phtml*
+// @grant        none
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    /////////////////////////////////
+    // CONFIGURATION
+    /////////////////////////////////
+
+    const WEAPON_KEYS = ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'];
+    const ABILITY_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    const BOTTOM_KEYS = ['Z', 'X', 'C', 'V', 'B', 'N', 'M'];
+
+    const BUTTON_ACTIONS = {
+        'Z': { selector: '#start', label: 'Fight 1' },
+        'X': { selector: '#fight', label: 'Fight 2' },
+        'C': { selector: '#skipreplay', label: '🔄⏩' },
+        'V': { selector: '.end_ack.collect', label: 'Collect' },
+        'B': { selector: '#bdplayagain', label: 'Play Again' },
+        'N': { selector: '#bdnewfight', label: 'New Fight' },
+        'M': { selector: '#bdexit', label: 'Exit' }
+    };
+
+    //=========================
+    // Scrape Weapons/Abilities
+    //=========================
+
+    const getWeaponImages = () => [...document.querySelectorAll('#p1equipment ul li')]
+    .filter(li => li.querySelector('img.item'));
+
+    const getAbilitySlots = () => [...document.querySelectorAll('#p1ability td[title]')];
+
+    //=====================
+    // SLOT SELECTION LOGIC
+    //=====================
+
+    function getItemInfo(url, n = 1) {
+        const items = document.querySelectorAll("#p1equipment ul li img.item");
+        let count = 0;
+
+        for (const item of items) {
+            if (item.src === url) {
+                count++;
+                if (count === n) {
+                    return { id: item.id, name: item.alt, node: item };
+                }
+            }
+        }
+        return null;
+    }
+
+    function getAbilityInfo(url) {
+        const table = document.querySelectorAll("#p1ability td[title]");
+        for (const node of table) {
+            const innerHTML = node.children[0]?.innerHTML || "";
+            const match = innerHTML.match(/img src=\"(.*?)\"/);
+            if (!match) continue;
+
+            let nodeurl = match[1];
+            if (!nodeurl.includes("https:")) {
+                nodeurl = "https:" + nodeurl;
+            }
+
+            if (nodeurl === url) {
+                if (node.children[0].classList.contains("cooldown")) return -1;
+                return {
+                    id: node.children[0].getAttribute("data-ability"),
+                    name: node.title,
+                    node: node
+                };
+            }
+        }
+        return null;
+    }
+
+    function selectSlot(slot, item, n = 1) {
+        const isAbility = slot.id === "p1am";
+        let info = isAbility ? getAbilityInfo(item) : getItemInfo(item, n);
+
+        if (info === -1 && isAbility) {
+            alert("WARNING: The selected ability is on cooldown!");
+            return true;
+        }
+
+        if (info === null) {
+            alert(`ERROR: Item not equipped!\nURL: ${item}`);
+            return true;
+        }
+
+        const slotid = slot.id.slice(0, -1);
+        const inputEl = document.querySelector(`#${slotid}`);
+        if (inputEl) inputEl.value = info.id;
+
+        slot.classList.add("selected");
+        slot.children[1].style.backgroundPosition = "0px 0px";
+        slot.children[1].style.backgroundSize = "60px 60px";
+        slot.children[1].style.backgroundImage = `url("${item}")`;
+
+        if (!isAbility) {
+            info.node.style.display = "none";
+            slot.addEventListener("click", function () {
+                info.node.removeAttribute("style");
+            });
+        }
+
+        return false;
+    }
+
+    window.selectSlot = selectSlot;
+
+    //==================
+    // KEYBOARD BINDINGS
+    //==================
+
+    let weaponSelectionCount = 0;
+
+    function setupKeyboardBindings(weaponImgs, abilityImgs) {
+        const weaponImgsFlat = weaponImgs.map(li => li.querySelector('img'));
+        const abilityImgsFlat = abilityImgs.map(td => td.querySelector('img'));
+
+        document.addEventListener('keydown', e => {
+            const key = e.key.toUpperCase();
+
+            // Weapons (A S D F J K L ;)
+            let wIndex = WEAPON_KEYS.indexOf(key);
+            if (wIndex !== -1 && weaponImgsFlat[wIndex]) {
+                const img = weaponImgsFlat[wIndex];
+
+                const slotId = weaponSelectionCount % 2 === 0 ? 'p1e1m' : 'p1e2m';
+                const slot = document.getElementById(slotId);
+                const occurrence = (weaponSelectionCount % 2) + 1;
+
+                if (slot && typeof selectSlot === 'function') {
+                    selectSlot(slot, img.src, occurrence);
+                    weaponSelectionCount++;
+                }
+                return;
+            }
+
+            // Abilities (1 2 3 4 5 6 7 8 9 0)
+            let aIndex = ABILITY_KEYS.indexOf(key);
+            if (aIndex !== -1 && abilityImgsFlat[aIndex]) {
+                const img = abilityImgsFlat[aIndex];
+                const slot = document.getElementById('p1am');
+                if (slot && typeof selectSlot === 'function') {
+                    selectSlot(slot, img.src);
+                }
+                return;
+            }
+
+            // Additional Functions (Z X C V B N M)
+            if (BUTTON_ACTIONS[key]) {
+                const target = document.querySelector(BUTTON_ACTIONS[key].selector);
+                if (target) {
+                    target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                }
+            }
+        });
+
+        ['#p1e1m', '#p1e2m'].forEach(id => {
+            const el = document.querySelector(id);
+            if (el) {
+                el.addEventListener('click', () => {
+                    weaponSelectionCount = 0;
+                });
+            }
+        });
+    }
+
+
+    //=============
+    // HUD CREATION
+    //=============
+
+    function createKeyElement(label, imgSrc = null, actionLabel = null) {
+        const key = document.createElement('div');
+        key.className = 'keyboard-key';
+        key.style.width = '50px';
+        key.style.height = '70px';
+        key.style.margin = '4px';
+        key.style.backgroundColor = '#333';
+        key.style.border = '1px solid #555';
+        key.style.borderRadius = '6px';
+        key.style.display = 'flex';
+        key.style.flexDirection = 'column';
+        key.style.alignItems = 'center';
+        key.style.justifyContent = 'center';
+        key.style.color = '#fff';
+        key.style.fontSize = '14px';
+        key.style.position = 'relative';
+
+        if (imgSrc) {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.style.width = '36px';
+            img.style.height = '36px';
+            img.style.objectFit = 'contain';
+            key.appendChild(img);
+        }
+
+        const labelEl = document.createElement('span');
+        labelEl.textContent = label;
+        labelEl.style.marginTop = '2px';
+        labelEl.style.fontWeight = 'bold';
+        labelEl.style.color = '#fff';
+        key.appendChild(labelEl);
+
+        let desc = null;
+        if (actionLabel) {
+            desc = document.createElement('div');
+            desc.textContent = actionLabel;
+            desc.style.fontSize = '12px';
+            desc.style.color = '#fff';
+            desc.style.marginTop = '2px';
+            desc.style.fontWeight = 'bold';
+            key.appendChild(desc);
+        }
+
+        // Custom colors for special buttons
+        if (label === 'Z' || label === 'X') {
+            key.style.backgroundColor = 'yellow';
+            labelEl.style.color = '#000';
+            if (desc) desc.style.color = '#000';
+        } else if (label === 'V') {
+            key.style.backgroundColor = 'green';
+            labelEl.style.color = '#fff';
+            if (desc) desc.style.color = '#fff';
+        }
+
+        return key;
+    }
+
+    function createKeyboardHUD(weapons, abilities) {
+        const container = document.createElement('div');
+        container.id = 'keyboard-hud';
+        container.style.width = '980px';
+        container.style.margin = '20px auto';
+        container.style.padding = '10px';
+        container.style.backgroundColor = '#111';
+        container.style.border = '2px solid #666';
+        container.style.borderRadius = '10px';
+
+        const flatWeapons = weapons.map(li => li.querySelector('img'));
+        const flatAbilities = abilities.map(td => td.querySelector('img'));
+
+        const layout = [
+            ABILITY_KEYS,
+            ['Q','W','E','R','T','Y','U','I','O','P'],
+            ['A','S','D','F','G','H','J','K','L',';'],
+            BOTTOM_KEYS
+        ];
+
+        layout.forEach(row => {
+            const rowEl = document.createElement('div');
+            rowEl.style.display = 'flex';
+            rowEl.style.justifyContent = 'center';
+            rowEl.style.marginTop = '6px';
+
+            row.forEach(key => {
+                if (key === '') {
+                    const spacer = document.createElement('div');
+                    spacer.style.width = '26px';
+                    spacer.style.margin = '4px';
+                    rowEl.appendChild(spacer);
+                    return;
+                }
+
+                const wIdx = WEAPON_KEYS.indexOf(key);
+                const aIdx = ABILITY_KEYS.indexOf(key);
+                const bAction = BUTTON_ACTIONS[key];
+
+                let keyEl;
+                if (wIdx !== -1 && flatWeapons[wIdx]) {
+                    keyEl = createKeyElement(key, flatWeapons[wIdx].src);
+                } else if (aIdx !== -1 && flatAbilities[aIdx]) {
+                    keyEl = createKeyElement(key, flatAbilities[aIdx].src);
+                } else if (bAction) {
+                    keyEl = createKeyElement(key, null, bAction.label);
+                } else {
+                    keyEl = createKeyElement(key);
+                }
+
+                rowEl.appendChild(keyEl);
+            });
+
+            container.appendChild(rowEl);
+        });
+
+        const status = document.getElementById('statusmsg');
+        if (status?.parentNode) {
+            status.parentNode.insertBefore(container, status.nextSibling);
+        }
+    }
+
+    //============================
+    // Run all necessary functions
+    //============================
+
+    function init() {
+        const weapons = getWeaponImages();
+        const abilities = getAbilitySlots();
+        if (!weapons.length && !abilities.length) return;
+
+        createKeyboardHUD(weapons, abilities);
+        setupKeyboardBindings(weapons, abilities);
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    window.addEventListener('load', init);
+})();
