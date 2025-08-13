@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Volunteer Center Notifications
-// @version      2025.08.05
-// @description  Adds a Notification to tell you how much time is left at 'Volunteer Center'
+// @version      2025.08.12
+// @description  Custom notification for Volunteer center. Also removes batch of default notifications.
 // @author       unoriginality786
 // @match        https://www.neopets.com/*
 // @icon         https://images.neopets.com/themes/h5/basic/images/tvw-icon.png
@@ -13,15 +13,15 @@
 
     // Notification Styles
     const notif = `
-      border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) 50 fill / 50px / 9px;
-      color:white;padding:1em;margin-left:4px;width:96.5%;
-    `.replace(/\s+/g, " ");
+border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) 50 fill / 50px / 9px;
+color:white;padding:1em;margin-left:4px;width:96.5%;
+`.replace(/\s+/g, " ");
 
     const arrow = `
-      width:2.5em;height:3.5em;
-      background:url(https://images.neopets.com/plots/tvw/activities/void-collection/imagers/arrow.png) center/contain no-repeat;
-      cursor:pointer;float:right;
-    `.replace(/\s+/g, " ");
+width:2.5em;height:3.5em;
+background:url(https://images.neopets.com/plots/tvw/activities/void-collection/imagers/arrow.png) center/contain no-repeat;
+cursor:pointer;float:right;
+`.replace(/\s+/g, " ");
 
     // Utility Functions
     const present = (date, hours = 0, mins = 0, secs = 0) => {
@@ -54,13 +54,13 @@
         };
 
         return `
-        <a id="tvw-notification" href="https://www.neopets.com/hospital/volunteer.phtml">
-          <li style="${notif}">
-            <div class="vc-arrow right" style="${arrow}"></div>
-            <h4 style="color:white;">${map[state]}</h4><br>
-          </li>
-        </a>
-      `;
+<a id="tvw-notification" href="https://www.neopets.com/hospital/volunteer.phtml">
+<li style="${notif}">
+<div class="vc-arrow right" style="${arrow}"></div>
+<h4 style="color:white;">${map[state]}</h4><br>
+</li>
+</a>
+`;
     };
 
     // Increment Notification Count
@@ -115,7 +115,7 @@
         const clock = document.querySelector("#VolunteerFight3 > div.vc-fight-details > div.vc-fight-status > span > script");
         if (clock) {
             const [hours, mins, secs] = clock.innerHTML
-                .split("new vcClock(").pop().split(")")[0].split(", ").map(Number);
+            .split("new vcClock(").pop().split(")")[0].split(", ").map(Number);
             localStorage.setItem("tvw-bfbi-shiftend", present(new Date(), hours, mins, secs));
             list.insertAdjacentHTML("afterbegin", block("inprogress"));
         } else {
@@ -134,4 +134,20 @@
             list.insertAdjacentHTML("afterbegin", block("noprogress"));
         }
     }
+
+    new MutationObserver(() =>
+                         document.querySelectorAll('li').forEach(li => {
+        if (li.querySelector('h4')?.textContent.includes('Neopian Hospital')) {
+            const id = li.querySelector('.alert-x')?.dataset.delid;
+            id && fetch('/ajax/alert_delete.phtml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `delid=${id}`,
+                credentials: 'include'
+            });
+            li.remove();
+        }
+    })
+                        ).observe(document.body, { childList: true, subtree: true });
+
 })();
