@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         QWERTY Battledome Buttons
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.3.1
 // @description  Control Neopets Battledome using keyboard. Includes HUD
 // @icon         https://images.neopets.com/neoboards/avatars/bd_veteran.gif
 // @match        https://www.neopets.com/dome/arena.phtml*
@@ -158,7 +158,7 @@
                 return;
             }
 
-            //Safety feature to prevent glitching
+            // Prevents game from bugging
             if (key === 'V') {
                 vKeyPressed = true;
             }
@@ -185,6 +185,33 @@
         });
     }
 
+    // Additional permissions needed to "Play Again"
+    (() => {
+    let unlocked = false;
+
+    const observer = new MutationObserver(() => {
+        const collectBtn = document.querySelector('.end_ack.collect');
+        if (collectBtn && !collectBtn.__guarded) {
+            collectBtn.__guarded = true;
+            collectBtn.addEventListener('click', () => {
+                unlocked = true;
+            }, { once: true });
+        }
+
+        const playAgainBtn = document.querySelector('#bdplayagain');
+        if (playAgainBtn && !playAgainBtn.__guarded) {
+            playAgainBtn.__guarded = true;
+            playAgainBtn.addEventListener('click', e => {
+                if (!unlocked) {
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                }
+            }, true);
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+})();
 
     //=============
     // HUD CREATION
@@ -315,7 +342,7 @@
         spacebarRow.style.marginTop = '10px';
         const spacebarKey = document.createElement('div');
         spacebarKey.className = 'keyboard-key';
-        spacebarKey.style.width = '300px';
+        spacebarKey.style.width = '530px';
         spacebarKey.style.height = '50px';
         spacebarKey.style.margin = '4px';
         spacebarKey.style.backgroundColor = 'rgba(51, 51, 51, 0.85)';
@@ -339,6 +366,7 @@
             status.parentNode.insertBefore(container, status.nextSibling);
         }
     }
+
     //============================
     // Run all necessary functions
     //============================
