@@ -29,6 +29,8 @@
         'M': { selector: '#bdexit', label: 'Exit' }
     };
 
+    let weaponSelectionCount = 0;
+    let lastEquippedWeaponUrl = null;
     let vKeyPressed = false;
 
     //=========================
@@ -138,7 +140,28 @@
 
                 const slotId = weaponSelectionCount % 2 === 0 ? 'p1e1m' : 'p1e2m';
                 const slot = document.getElementById(slotId);
-                const occurrence = (weaponSelectionCount % 2) + 1;
+let wIndex = WEAPON_KEYS.indexOf(key);
+if (wIndex !== -1 && weaponImgsFlat[wIndex]) {
+    const img = weaponImgsFlat[wIndex];
+    const slotId = weaponSelectionCount % 2 === 0 ? 'p1e1m' : 'p1e2m';
+    const slot = document.getElementById(slotId);
+
+    let occurrence = 1;
+
+    if (weaponSelectionCount % 2 === 1) {
+        // We're on slot 2
+        occurrence = (img.src === lastEquippedWeaponUrl) ? 2 : 1;
+    } else {
+        // We're on slot 1, so remember the weapon
+        lastEquippedWeaponUrl = img.src;
+    }
+
+    if (slot && typeof selectSlot === 'function') {
+        selectSlot(slot, img.src, occurrence);
+        weaponSelectionCount++;
+    }
+    return;
+}
 
                 if (slot && typeof selectSlot === 'function') {
                     selectSlot(slot, img.src, occurrence);
@@ -175,14 +198,16 @@
             }
         });
 
-        ['#p1e1m', '#p1e2m'].forEach(id => {
-            const el = document.querySelector(id);
-            if (el) {
-                el.addEventListener('click', () => {
-                    weaponSelectionCount = 0;
-                });
-            }
+['#p1e1m', '#p1e2m'].forEach(id => {
+    const el = document.querySelector(id);
+    if (el) {
+        el.addEventListener('click', () => {
+            weaponSelectionCount = 0;
+            lastEquippedWeaponUrl = null;
         });
+    }
+});
+
     }
 
     // Additional permissions needed to "Play Again"
