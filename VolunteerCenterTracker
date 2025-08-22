@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Volunteer Center Notifications
-// @version      2025.08.12
-// @description  Custom notification for Volunteer center. Also removes batch of default notifications.
+// @version      2025.08.22
+// @description  Adds block to Notification bar to tell you how much time is left on Volunteer Center
 // @author       unoriginality786
 // @match        https://www.neopets.com/*
 // @icon         https://images.neopets.com/themes/h5/basic/images/tvw-icon.png
@@ -11,19 +11,20 @@
 (() => {
     "use strict";
 
-    // Notification Styles
-    const notif = `
-border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) 50 fill / 50px / 9px;
-color:white;padding:1em;margin-left:4px;width:96.5%;
-`.replace(/\s+/g, " ");
+    const NOTIF_STYLE = `border-image:url(https://images.neopets.com/plots/tvw/home/images/summary-backing.png) 50 fill / 50px / 9px; color:white;padding:1em;margin-left:4px;width:96.5%;`.replace(/\s+/g, " ");
 
-    const arrow = `
-width:2.5em;height:3.5em;
-background:url(https://images.neopets.com/plots/tvw/activities/void-collection/imagers/arrow.png) center/contain no-repeat;
-cursor:pointer;float:right;
-`.replace(/\s+/g, " ");
+    const TIMEZONE = (() => {
+        const match = new Date().toTimeString().match(/\(([^)]+)\)/);
+        const zone = match ? match[1] : "UTC";
+        return zone.includes(" ") ? zone.split(" ").map(w => w[0]).join("") : zone;
+    })();
 
-    // Utility Functions
+    const STATUS_TEXT = {
+        noprogress: "Not in progress",
+        inprogress: (time, zone) => `In progress until ${time} ${zone}`,
+        completed: "Finished"
+    };
+
     const present = (date, hours = 0, mins = 0, secs = 0) => {
         date.setHours(date.getHours() + hours);
         date.setMinutes(date.getMinutes() + mins);
@@ -31,7 +32,6 @@ cursor:pointer;float:right;
         return date;
     };
 
-    // Generate Notification Block
     const block = (state) => {
         const saved = localStorage.getItem("tvw-bfbi-shiftend");
         const end = new Date(saved);
@@ -43,27 +43,21 @@ cursor:pointer;float:right;
             hour12: true
         }).replace(",", "").replace("AM", "am").replace("PM", "pm");
 
-        const zone_match = new Date().toTimeString().match(/\(([^)]+)\)/);
-        const zone = zone_match ? zone_match[1] : "UTC";
-        const abbr = zone.includes(" ") ? zone.split(" ").map(w => w[0]).join("") : zone;
-
-        const map = {
-            noprogress: "Not in progress",
-            inprogress: `In progress until ${time} ${abbr}`,
-            completed: "Finished"
+        const message = {
+            noprogress: STATUS_TEXT.noprogress,
+            inprogress: STATUS_TEXT.inprogress(time, TIMEZONE),
+            completed: STATUS_TEXT.completed
         };
 
         return `
 <a id="tvw-notification" href="https://www.neopets.com/hospital/volunteer.phtml">
-<li style="${notif}">
-<div class="vc-arrow right" style="${arrow}"></div>
-<h4 style="color:white;">${map[state]}</h4><br>
+<li style="${NOTIF_STYLE}">
+<h4 style="color:white;">${message[state]}</h4><br>
 </li>
 </a>
 `;
     };
 
-    // Increment Notification Count
     const increment = () => {
         const alert = document.getElementById("NavAlertsNotif");
         const count = parseInt(alert.textContent) || 0;
@@ -72,12 +66,6 @@ cursor:pointer;float:right;
         alert.style.background = "#FF46FF";
     };
 
-    // Storage Access
-    const list = document.querySelector("#alerts > ul");
-    document.querySelector("#alerts > ul > .alerts-none__2020")?.remove();
-    const saved = localStorage.getItem("tvw-bfbi-shiftend");
-
-    // Button Handlers
     const start = () => {
         localStorage.setItem("tvw-bfbi-shiftend", present(new Date(), 6));
         document.getElementById("tvw-notification").innerHTML = block("inprogress");
@@ -92,7 +80,10 @@ cursor:pointer;float:right;
         localStorage.removeItem("tvw-bfbi-shiftend");
     };
 
-    // Main Logic
+    const list = document.querySelector("#alerts > ul");
+    document.querySelector("#alerts > ul > .alerts-none__2020")?.remove();
+    const saved = localStorage.getItem("tvw-bfbi-shiftend");
+
     if (location.href === "https://www.neopets.com/hospital/volunteer.phtml") {
         const join = document.getElementById("VolunteerJoinButton");
         join?.addEventListener("click", e => {
@@ -112,10 +103,18 @@ cursor:pointer;float:right;
             finish();
         });
 
-        const clock = document.querySelector("#VolunteerFight3 > div.vc-fight-details > div.vc-fight-status > span > script");
-        if (clock) {
-            const [hours, mins, secs] = clock.innerHTML
-            .split("new vcClock(").pop().split(")")[0].split(", ").map(Number);
+        const h10 = document.getElementById("fight3HourTen");
+        const h1 = document.getElementById("fight3HourOne");
+        const m10 = document.getElementById("fight3MinTen");
+        const m1 = document.getElementById("fight3MinOne");
+        const s10 = document.getElementById("fight3SecTen");
+        const s1 = document.getElementById("fight3SecOne");
+
+        if (h10 && h1 && m10 && m1 && s10 && s1) {
+            const hours = parseInt(`${h10.textContent}${h1.textContent}`);
+            const mins = parseInt(`${m10.textContent}${m1.textContent}`);
+            const secs = parseInt(`${s10.textContent}${s1.textContent}`);
+
             localStorage.setItem("tvw-bfbi-shiftend", present(new Date(), hours, mins, secs));
             list.insertAdjacentHTML("afterbegin", block("inprogress"));
         } else {
@@ -134,20 +133,4 @@ cursor:pointer;float:right;
             list.insertAdjacentHTML("afterbegin", block("noprogress"));
         }
     }
-
-    new MutationObserver(() =>
-                         document.querySelectorAll('li').forEach(li => {
-        if (li.querySelector('h4')?.textContent.includes('Neopian Hospital')) {
-            const id = li.querySelector('.alert-x')?.dataset.delid;
-            id && fetch('/ajax/alert_delete.phtml', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `delid=${id}`,
-                credentials: 'include'
-            });
-            li.remove();
-        }
-    })
-                        ).observe(document.body, { childList: true, subtree: true });
-
 })();
