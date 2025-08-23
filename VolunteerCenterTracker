@@ -67,7 +67,7 @@
     };
 
     const start = () => {
-        localStorage.setItem("tvw-bfbi-shiftend", present(new Date(), 6));
+        localStorage.setItem("tvw-bfbi-shiftend", present(new Date(), 6)); //change 6 to 3 if using Premium 
         document.getElementById("tvw-notification").innerHTML = block("inprogress");
     };
 
