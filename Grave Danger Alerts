@@ -3,8 +3,8 @@
 // @version      2025.09.0
 // @author       unoriginality786
 // @description  Adds time remaining to neopets "Alerts" tab
-// @downloadurl
-// @updateurl
+// @downloadURL  https://raw.githubusercontent.com/unoriginality786/Neopets-Userscripts/refs/heads/main/Grave%20Danger%20Alerts
+// @updateURL    https://raw.githubusercontent.com/unoriginality786/Neopets-Userscripts/refs/heads/main/Grave%20Danger%20Alerts
 // @match        https://www.neopets.com/*
 // @grant        none
 // ==/UserScript==
