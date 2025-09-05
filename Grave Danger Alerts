@@ -1,0 +1,176 @@
+// ==UserScript==
+// @name         Grave Danger Notification
+// @version      2025.09.0
+// @author       unoriginality786
+// @description  Adds time remaining to neopets "Alerts" tab
+// @downloadurl
+// @updateurl
+// @match        https://www.neopets.com/*
+// @grant        none
+// ==/UserScript==
+
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "graveDangerData";
+  const UPDATE_INTERVAL = 30 * 60 * 1000;
+
+  const NOTIF_BG = "https://images.neopets.com/nnmail/10_10/story2_img.jpg";
+  const NOTIF_STYLE = `
+    border-image: url(${NOTIF_BG}) 50 fill / 50px / 9px;
+    color: white;
+    padding: 1em;
+    margin-left: 4px;
+    width: 96.5%;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    list-style: none;
+  `.replace(/\s+/g, " ");
+
+  const waitForElement = (selector, timeout = 5000) => {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      const interval = setInterval(() => {
+        const el = document.querySelector(selector);
+        if (el) {
+          clearInterval(interval);
+          resolve(el);
+        } else if (Date.now() - start > timeout) {
+          clearInterval(interval);
+          reject(new Error("Element not found: " + selector));
+        }
+      }, 100);
+    });
+  };
+
+  const loadData = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  const saveData = (data) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, savedAt: Date.now() }));
+  };
+
+  const shouldUpdate = (data) => {
+    if (!data) return true;
+    return Date.now() - data.savedAt > UPDATE_INTERVAL;
+  };
+
+  const formatSeconds = (totalSeconds) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return [h, m, s].map(v => v.toString().padStart(2, "0")).join(":");
+  };
+
+  const extractRemainingSeconds = (text) => {
+    if (!text) return null;
+    const match = text.match(/(\d+)\s*hours?,\s*(\d+)\s*minutes?,\s*(\d+)\s*seconds?/i);
+    if (!match) return null;
+    const [_, h, m, s] = match;
+    return parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s);
+  };
+
+  const fetchAndSaveData = () => {
+    const remainingText = document.getElementById("gdRemaining")?.textContent.trim();
+    const petImg = document.querySelector("#gdActive img.item")?.src || null;
+    const petName = document.querySelector("#gdActive .petpetName")?.textContent || null;
+
+    if (!remainingText || !petImg || !petName) return null;
+
+    const totalSeconds = extractRemainingSeconds(remainingText);
+    if (totalSeconds === null) return null;
+
+    const data = { petImg, petName, totalSeconds };
+    saveData(data);
+    return data;
+  };
+
+  const createOrUpdateNotification = (htmlContent) => {
+    const alertsList = document.querySelector("#alerts > ul");
+    const alertsContainer = document.querySelector("#alerts");
+
+    if (!alertsContainer || !alertsList) return;
+
+    let wrapper = document.getElementById("graveDangerNotification");
+
+    if (!wrapper) {
+      wrapper = document.createElement("a");
+      wrapper.href = "https://www.neopets.com/halloween/gravedanger/index.phtml";
+      wrapper.id = "graveDangerNotification";
+
+      const li = document.createElement("li");
+      li.style.cssText = NOTIF_STYLE;
+      li.innerHTML = htmlContent;
+
+      wrapper.appendChild(li);
+
+      alertsList.insertAdjacentElement("afterbegin", wrapper);
+    } else {
+      const li = wrapper.querySelector("li");
+      if (li) {
+        li.innerHTML = htmlContent;
+      }
+    }
+  };
+
+  const updateStatus = async () => {
+    const alertsDiv = document.querySelector("div#alerts.alerts-tab-content__2020");
+    if (!alertsDiv) {
+      console.log("[Grave Danger] Alerts container not found; skipping notification.");
+      return;
+    }
+
+    let data = loadData();
+
+    if (
+      window.location.pathname.includes("halloween/gravedanger/index.phtml") &&
+      shouldUpdate(data)
+    ) {
+      try {
+        await waitForElement("#gdRemaining");
+        data = fetchAndSaveData();
+        console.log("[Grave Danger] Data refreshed from page:", data);
+      } catch (err) {
+        console.warn("[Grave Danger] Could not fetch data:", err);
+      }
+    } else {
+      console.log("[Grave Danger] Using stored data:", data);
+    }
+
+    if (data && data.petImg && data.totalSeconds > 0) {
+      createOrUpdateNotification(`
+        <div style="position: relative;">
+          <img src="${data.petImg}" alt="${data.petName}" style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            height: 80px;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 0;
+          ">
+          <h4 style="color:white; position: relative; z-index: 1; margin: 0;">
+            Adventuring: ${data.petName}
+          </h4>
+          <strong style="position: relative; z-index: 1;">Time Remaining:</strong>
+          <span style="position: relative; z-index: 1;">${formatSeconds(data.totalSeconds)}</span>
+        </div>
+      `);
+    } else {
+      createOrUpdateNotification(`
+        <h4 style="color:white;">No petpet is adventuring right now.</h4>
+      `);
+    }
+  };
+
+  updateStatus();
+  setInterval(updateStatus, 60 * 1000);
+})();
