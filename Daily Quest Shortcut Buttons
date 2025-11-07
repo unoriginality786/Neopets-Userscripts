@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Neopets - Daily Quest Helper
-// @version      2025.09.03
-// @author       Inspired by Zara Kayn and Savannah Bussell
-// @description  Adds blue "neopets style" buttons to quest log to navigate more easily around the site
+// @version      2025.11.07
+// @author       based on work by https://greasyfork.org/en/users/1199864-zara-kayn
+// @description  Adds styled buttons to daily quests instead of links
 // @match        *://*.neopets.com/questlog/
 // @icon         https://images.neopets.com/nchub/np/images/membership/icon-premiumquest.png
 // @grant        none
@@ -32,7 +32,10 @@
 // Pair Quest Keywords with targets
   const quests = [
     ["Customise one", [["https://www.neopets.com/customise/", "Customise"]]],
-    ["Play any Game", [["https://www.neopets.com/games/h5game.phtml?game_id=1391", "Quick Game"]]],
+    ["NC Item", [["ncmall.neopets.com/mall/search.phtml?type=browse&cat=43", "NC Mall"]]],
+    ["Battledome", [["https://www.neopets.com/dome/arena.phtml", "Battledome"]]],
+    ["Fishing", [["https://www.neopets.com/water/fishing.phtml", "Go Fish"]]],
+    ["Play any Game", [["https://www.neopets.com/games/h5game.phtml?game_id=1391", "Fashion Fever"]]],
     ["Purchase item(s)", [
       [randomShop(), "Random Shop"],
       ["https://www.neopets.com/faerieland/springs.phtml", "Healing Springs"]
@@ -40,11 +43,18 @@
     ["Wheel of Mediocrity", [["https://www.neopets.com/prehistoric/mediocrity.phtml", "Mediocrity"]]],
     ["Wheel of Excitement", [["https://www.neopets.com/faerieland/wheel.phtml", "Excitement"]]],
     ["Wheel of Knowledge", [["https://www.neopets.com/medieval/knowledge.phtml", "Knowledge"]]],
-    ["Wheel of Misfortune", [["https://www.neopets.com/halloween/wheel/index.phtml", "Misfortune"]]],
+    ["Wheel of Misfortune", [
+        ["https://www.neopets.com/quickref.phtml", "Switch Pet"],
+        ["https://www.neopets.com/halloween/wheel/index.phtml", "Misfortune"]]],
     ["Groom one", [
-      ["https://www.neopets.com/inventory.phtml", "Inventory"],
-      ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=10", "SDB"]
-    ]]
+      ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=10", "SDB Grooming"],
+      ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
+    ["Play With", [
+      ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=5", "SDB Toys"],
+      ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
+    ["Read", [
+      ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=6", "SDB Books"],
+      ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
   ];
 
   const addBtns = () => {
@@ -75,8 +85,11 @@
           d.dataset.linksAdded = '1';
           n += links.length;
           break;
-        }}});
-    return n;};
+        }
+      }
+    });
+    return n;
+  };
 
 // Wait before executing methods to let page finish loading
   const wait = () => {
@@ -90,7 +103,10 @@
         if (addBtns() || t >= max) {
           clearInterval(i);
           if (content) new MutationObserver(addBtns).observe(content, { childList: true, subtree: true });
-        }}}, 200);  };
+        }
+      }
+    }, 200);
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wait);
