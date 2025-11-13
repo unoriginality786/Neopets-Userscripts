@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Neopets - Daily Quest Helper
-// @version      2025.11.07
+// @version      2025.11.13
 // @author       based on work by https://greasyfork.org/en/users/1199864-zara-kayn
 // @description  Adds styled buttons to daily quests instead of links
 // @match        *://*.neopets.com/questlog/
@@ -32,7 +32,7 @@
 // Pair Quest Keywords with targets
   const quests = [
     ["Customise one", [["https://www.neopets.com/customise/", "Customise"]]],
-    ["NC Item", [["ncmall.neopets.com/mall/search.phtml?type=browse&cat=43", "NC Mall"]]],
+    ["in the NC Mall", [["https://ncmall.neopets.com/mall/search.phtml?page=1&cat=&type=browse&limit=24", "NC Mall"]]],
     ["Battledome", [["https://www.neopets.com/dome/arena.phtml", "Battledome"]]],
     ["Fishing", [["https://www.neopets.com/water/fishing.phtml", "Go Fish"]]],
     ["Play any Game", [["https://www.neopets.com/games/h5game.phtml?game_id=1391", "Fashion Fever"]]],
@@ -49,10 +49,10 @@
     ["Groom one", [
       ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=10", "SDB Grooming"],
       ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
-    ["Play With", [
+    ["with any toy", [
       ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=5", "SDB Toys"],
       ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
-    ["Read", [
+    ["read", [
       ["https://www.neopets.com/safetydeposit.phtml?obj_name=&category=6", "SDB Books"],
       ["https://www.neopets.com/inventory.phtml", "Inventory"]]],
   ];
