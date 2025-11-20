@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neopets - Daily Quest Helper
 // @description  Adds styled buttons to daily quests instead of links
-// @version      2025.11.14
+// @version      2025.11.20
 // @license      GNU GPLv3
 // @match        *://*.neopets.com/questlog/
 // @author       based on work by zara-kayn & FB user suggestion to add blue button styles
