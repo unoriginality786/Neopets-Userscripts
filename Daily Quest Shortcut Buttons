@@ -36,7 +36,7 @@
 // Pair Quest Keywords with targets
   const quests = [
     ["Customise one", [["https://www.neopets.com/customise/", "Customise"]]],
-    ["in the NC Mall", [["https://ncmall.neopets.com/mall/search.phtml?page=1&cat=&type=browse&limit=24", "NC Mall"]]],
+    ["the NC Mall", [["https://ncmall.neopets.com/mall/search.phtml?page=1&cat=&type=browse&limit=24", "NC Mall"]]],
     ["Battledome", [["https://www.neopets.com/dome/arena.phtml", "Battledome"]]],
     ["Fishing", [["https://www.neopets.com/water/fishing.phtml", "Go Fish"]]],
     ["Play any Game", [["https://www.neopets.com/games/h5game.phtml?game_id=1391", "Fashion Fever"]]],
