@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Seshatia's Help
 // @description  Adds hint buttons to Faerie Crossword clues
-// @version      2025.08.13
+// @version      2025.12.30
 // @license      GNU GPLv3
 // @match        https://www.neopets.com/games/crossword/*
 // @grant        none
@@ -58,13 +58,13 @@
     const clueMap = new Map();
 
     try {
-        const response = await fetch('https://raw.githubusercontent.com/unoriginality786/NeopetsFaerieCrosswordJSON/refs/heads/main/QuestionsAnswers');
+        const response = await fetch('https://raw.githubusercontent.com/unoriginality786/NeopetsFaerieCrosswordJSON/refs/heads/main/ClueMapAlpha.json');
         data = await response.json();
 
-        data.clues.forEach(entry => {
-            const normalizedClue = (entry.clue || entry.question || "").toLowerCase().trim();
+        Object.entries(data.clues).forEach(([clue, answer]) => {
+            const normalizedClue = clue.toLowerCase().trim();
             if (normalizedClue) {
-                clueMap.set(normalizedClue, entry.answer);
+                clueMap.set(normalizedClue, answer);
             }
         });
     } catch (error) {
