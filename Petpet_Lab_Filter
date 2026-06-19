@@ -1,0 +1,30 @@
+// ==UserScript==
+// @name         Petpet Lab Filter
+// @version      2026.06.19
+// @description  Only shows the option for Ny6 in the Petpet Lab dropdown
+// @match        https://www.neopets.com/petpetlab.phtml
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    function filterPetpetDropdown() {
+        const select = document.querySelector('select.h5-input.input-200[onchange="selectPetpet(this)"]');
+
+        if (select) {
+            const options = select.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (option.value !== "yourneopetsnamegoeshere" && !option.disabled) { //Your pet (not petpet) name goes here
+                    option.remove();
+                }
+            });
+        }
+    }
+
+    filterPetpetDropdown();
+
+    const observer = new MutationObserver(filterPetpetDropdown);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+})();
